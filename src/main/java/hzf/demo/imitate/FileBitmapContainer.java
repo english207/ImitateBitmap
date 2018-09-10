@@ -40,7 +40,7 @@ public class FileBitmapContainer extends Container
     }
 
     @Override
-    public void add(short x)
+    public Container add(short x)
     {
         if (isEmpty)
         {
@@ -55,6 +55,8 @@ public class FileBitmapContainer extends Container
         long nval = p | 1l << (unsigned % 64);
         array_update(idx, nval);
         cardinality += (p ^ nval) >>> x;
+
+        return this;
     }
 
     private int findIdx(int unsigned)
@@ -126,8 +128,8 @@ public class FileBitmapContainer extends Container
 
 
     @Override
-    public void remove(short x) {
-
+    public Container remove(short x) {
+        return this;
     }
 
     @Override

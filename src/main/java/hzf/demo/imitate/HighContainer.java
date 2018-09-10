@@ -4,7 +4,7 @@ package hzf.demo.imitate;
  * Created by WTO on 2018/6/8 0008.
  *
  */
-public abstract class Container implements Iterable<Short>, Cloneable
+public abstract class HighContainer implements Iterable<Integer>, Cloneable
 {
     public static final int len = 6;
     public static final int[] whereIdx = new int[32];
@@ -18,24 +18,28 @@ public abstract class Container implements Iterable<Short>, Cloneable
         }
     }
 
-    public abstract Container add(final short x);
+    public abstract HighContainer add(final int x);
 
-    public abstract Container remove(final short x);
+    public abstract HighContainer remove(final int x);
 
-    public abstract boolean contain(final short x);
+    public abstract boolean contain(final int x);
 
     public abstract int cardinality();
 
     public abstract int getSizeInBytes();
 
-    public abstract Container and(final Container x);
+    public abstract HighContainer and(final HighContainer x);
 
-    public abstract Container or(final Container x);
+    public abstract HighContainer or(final HighContainer x);
 
-    public abstract Container andNot(final Container x);
+    public abstract HighContainer andNot(final HighContainer x);
 
     protected static short highbits(int x) {
         return (short) (x >>> 16);
+    }
+
+    protected static short lowbits(int x) {
+        return (short) (x & 0xFFFF);
     }
 
     protected static int toIntUnsigned(short x) {

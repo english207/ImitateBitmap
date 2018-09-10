@@ -18,7 +18,7 @@ public class DirectByteBufferContainer extends Container
     private int cardinality = 0;
 
     @Override
-    public void add(short x)
+    public Container add(short x)
     {
         if (buffer == null) {
             buffer = ByteBuffer.allocateDirect((32 + 4) * 8);
@@ -32,6 +32,8 @@ public class DirectByteBufferContainer extends Container
         long nval = p | 1l << (unsigned % 64);
         array_update(idx, nval);
         cardinality += (p ^ nval) >>> x;
+
+        return this;
     }
 
     private long keys(int idx)
@@ -162,8 +164,8 @@ public class DirectByteBufferContainer extends Container
     }
 
     @Override
-    public void remove(short x) {
-
+    public Container remove(short x) {
+        return this;
     }
 
     @Override

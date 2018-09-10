@@ -20,7 +20,7 @@ public class DynScaleBitmapContainer extends Container
     }
 
     @Override
-    public void add(short x)
+    public Container add(short x)
     {
         if (keys == null) {
             keys = new long[32];
@@ -32,13 +32,15 @@ public class DynScaleBitmapContainer extends Container
         long nval = p | 1l << (unsigned % 64);
         array[idx] = nval;
         cardinality += (p ^ nval) >>> x;
+
+        return this;
     }
 
     @Override
-    public void remove(short x)
+    public Container remove(short x)
     {
         if (keys == null) {
-            return;
+            return this;
         }
         int unsigned = toIntUnsigned(x);
         int idx = unsigned >> len;  // 除以 64
@@ -48,7 +50,7 @@ public class DynScaleBitmapContainer extends Container
         long high = key >> 32;
 
         if (high == 0) {
-            return ;
+            return this;
         }
 
         int k_offset = idx - idx_k * 32;
@@ -56,7 +58,7 @@ public class DynScaleBitmapContainer extends Container
         boolean exist = (high & 1l << k_offset) != 0;
 
         if (!exist) {
-            return;
+            return this;
         }
 
         long low = key & 4294967295l;       // 低位代表前面有多少个1，也就是代表着前面起码有low个数
@@ -68,7 +70,7 @@ public class DynScaleBitmapContainer extends Container
         long result = p & (~resultTmp);
 
         if (result == p) {   // 没变化，即本来位置上就没有对应的位
-            return;
+            return this;
         }
         array[((int) low)] = result;    // 将对应位修改成对应数字
         if (result == 0)                            // 清除之后当前位上已经没有数了
@@ -105,6 +107,8 @@ public class DynScaleBitmapContainer extends Container
             this.keys = null;
             this.array = null;
         }
+
+        return this;
 
     }
 
