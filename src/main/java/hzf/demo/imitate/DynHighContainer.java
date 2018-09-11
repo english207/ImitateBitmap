@@ -209,12 +209,12 @@ public class DynHighContainer extends HighContainer
         {
             if (keys == null)
             {
-                this._keys = new long[32];
+                this._keys = new long[keys_max];
                 this._array = null;
             }
             else
             {
-                this._keys = keys.clone();
+                this._keys = keys;
                 this._array = array;
             }
 
@@ -287,7 +287,7 @@ public class DynHighContainer extends HighContainer
 
 //        highContainer.add(5);
 //        highContainer.add(66);
-        highContainer.add(176554458);
+//        highContainer.add(176554458);
 
         System.out.println(highContainer.contain(66));
         System.out.println(highContainer.contain(555));
