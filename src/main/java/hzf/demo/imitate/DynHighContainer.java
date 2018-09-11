@@ -2,6 +2,8 @@ package hzf.demo.imitate;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by huangzhenfeng on 2018/9/10.
@@ -21,7 +23,7 @@ public class DynHighContainer extends HighContainer
         if (keys == null) {
             keys = new long[keys_max];
         }
-        
+
         short hb = highbits(x);
         short low = lowbits(x);
         int unsigned = toIntUnsigned(hb);
@@ -34,9 +36,8 @@ public class DynHighContainer extends HighContainer
     }
 
 
-    private int findIdx(int unsigned)
+    private int findIdx(int idx)
     {
-        int idx = unsigned >> len;
         int idx_k = idx >> 5;
         long key = keys[idx_k];
 
@@ -91,8 +92,39 @@ public class DynHighContainer extends HighContainer
     }
 
     @Override
-    public HighContainer remove(int x) {
-        return null;
+    public HighContainer remove(int x)
+    {
+        if (keys == null) {
+            return this;
+        }
+
+        short x_hb = highbits(x);
+        short x_low = lowbits(x);
+        int idx = toIntUnsigned(x_hb);
+        int idx_k = idx >> 5;       // 除以 32
+        long key = keys[idx_k];
+
+        long high = key >> 32;
+
+        if (high == 0) {
+            return this;
+        }
+
+        int k_offset = idx - idx_k * 32;
+
+        boolean exist = (high & 1l << k_offset) != 0;
+
+        if (!exist) {
+            return this;
+        }
+
+        long low = key & 4294967295l;       // 低位代表前面有多少个1，也就是代表着前面起码有low个数
+        low += Long.bitCount(high & whereIdx[k_offset]);
+
+        Container container = array[((int) low)];
+        array[((int) low)] = container.remove(x_low);
+
+        return this;
     }
 
     @Override
@@ -104,8 +136,7 @@ public class DynHighContainer extends HighContainer
 
         short x_hb = highbits(x);
         short x_low = lowbits(x);
-        int unsigned = toIntUnsigned(x_hb);
-        int idx = unsigned >> len;  // 除以 64
+        int idx = toIntUnsigned(x_hb);
         int idx_k = idx >> 5;       // 除以 32
         long key = keys[idx_k];
 
@@ -156,20 +187,119 @@ public class DynHighContainer extends HighContainer
     }
 
     @Override
-    public Iterator<Integer> iterator() {
-        return null;
+    public Iterator<Integer> iterator()
+    {
+        return new DynHighContainerIterator();
+    }
+
+    class DynHighContainerIterator implements Iterator<Integer>
+    {
+        private long[] _keys;
+        private Container[] _array;
+        private int min = 0;
+        private BlockingQueue<Integer> datas = null;
+        private int data = 0;
+
+        private int array_idx = 0;
+        private int key_idx = 0;
+        private int key_loop_idx = -1;
+        private long high;
+
+        private DynHighContainerIterator()
+        {
+            if (keys == null)
+            {
+                this._keys = new long[32];
+                this._array = null;
+            }
+            else
+            {
+                this._keys = keys.clone();
+                this._array = array;
+            }
+
+            this.datas = new LinkedBlockingQueue<Integer>();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            Integer tmp = datas.poll();
+            if (tmp != null)
+            {
+                data = tmp;
+                return true;
+            }
+            else
+            {
+                key_loop_idx ++;
+                while (key_idx < keys_max)
+                {
+                    this.high = _keys[key_idx] >> 32 & 4294967295l;
+                    if (high != 0)
+                    {
+                        while (key_loop_idx < 32)
+                        {
+                            if ((high & 1l << key_loop_idx) != 0)
+                            {
+                                Container container = _array[array_idx];
+                                array_idx ++;
+                                min = (key_idx * 32 * 65536 + key_loop_idx * 65536);
+                                putData(container);
+                                data = datas.poll();
+                                return true;
+                            }
+
+                            key_loop_idx++;
+                        }
+                    }
+                    key_idx ++;
+                    key_loop_idx = -1;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Integer next()
+        {
+            return data;
+        }
+
+        private void putData(Container container)
+        {
+            Iterator<Short> iterator =  container.iterator();
+            while (iterator.hasNext())
+            {
+                datas.add(min + (iterator.next() & 0xFFFF));
+            }
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     public static void main(String[] args)
     {
         DynHighContainer highContainer = new DynHighContainer();
 
-        highContainer.add(5);
-        highContainer.add(66);
+//        highContainer.add(5);
+//        highContainer.add(66);
+        highContainer.add(176554458);
 
         System.out.println(highContainer.contain(66));
         System.out.println(highContainer.contain(555));
+        System.out.println(highContainer.contain(176554458));
 
+
+        Iterator<Integer> iterator = highContainer.iterator();
+
+        while (iterator.hasNext())
+        {
+            System.out.println(iterator.next());
+        }
 
 
 
