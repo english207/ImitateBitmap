@@ -14,8 +14,6 @@ public class DynHighContainer extends HighContainer
     private static final int keys_max = 2048;
     private long[] keys = null;      // 2048个
     private Container[] array = null;     // 65536个
-    private int cardinality = 0;
-
 
     @Override
     public HighContainer add(int x)
@@ -162,12 +160,33 @@ public class DynHighContainer extends HighContainer
     }
 
     @Override
-    public int cardinality() {
+    public int cardinality()
+    {
+        if (array != null)
+        {
+            int cardinality = 0;
+            for (Container container : array)
+            {
+                cardinality += container.cardinality();
+            }
+            return cardinality;
+        }
         return 0;
     }
 
     @Override
-    public int getSizeInBytes() {
+    public int getSizeInBytes()
+    {
+        if (array != null)
+        {
+            int sizeInBytes = 0;
+            for (Container container : array)
+            {
+                sizeInBytes += container.getSizeInBytes();
+            }
+            return sizeInBytes + 2048 * 8;
+        }
+
         return 0;
     }
 
@@ -285,9 +304,12 @@ public class DynHighContainer extends HighContainer
     {
         DynHighContainer highContainer = new DynHighContainer();
 
-//        highContainer.add(5);
-//        highContainer.add(66);
-//        highContainer.add(176554458);
+        highContainer.add(5);
+        highContainer.add(5);
+        highContainer.add(2545);
+        highContainer.add(5);
+        highContainer.add(66);
+        highContainer.add(176554458);
 
         System.out.println(highContainer.contain(66));
         System.out.println(highContainer.contain(555));
@@ -301,6 +323,8 @@ public class DynHighContainer extends HighContainer
             System.out.println(iterator.next());
         }
 
+        System.out.println("cardinality - " + highContainer.cardinality());
+        System.out.println("sizeInBytes - " + highContainer.getSizeInBytes());
 
 
 

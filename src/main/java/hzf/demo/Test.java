@@ -1,9 +1,11 @@
 package hzf.demo;
 
+import hzf.demo.imitate.ImitateBitmap;
 import org.roaringbitmap.ArrayContainer;
 import org.roaringbitmap.Container;
 
 import java.util.BitSet;
+import java.util.Iterator;
 
 /**
  * Created by huangzhenfeng on 2018/6/15.
@@ -11,33 +13,20 @@ import java.util.BitSet;
  */
 public class Test
 {
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
+        ImitateBitmap bitmap = new ImitateBitmap();
 
-        Container arrayContainer = new ArrayContainer();
-        Container arrayContainer2 = new ArrayContainer();
-
-        BitSet bitSet = new BitSet();
-        BitSet bitSet2 = new BitSet();
-
-        for (int i = 2568; i < 8908; i++) {
-            arrayContainer = arrayContainer2.add((short) i);
-            bitSet2.set(i);
+        for (int i = 2568; i < 8908; i++)
+        {
+            bitmap.add(i);
         }
 
-        for (int i = 0; i < 3568; i++) {
-            arrayContainer = arrayContainer.add((short) i);
-            bitSet.set(i);
+        Iterator<Integer> iterator = bitmap.iterator();
+
+        while (iterator.hasNext())
+        {
+            System.out.println(iterator.next());
         }
-
-        Container arrayContainer3 = arrayContainer.or(arrayContainer2);
-        bitSet.or(bitSet2);
-
-        System.out.println(arrayContainer3.toString());
-        System.out.println(bitSet.toString());
-
-        System.out.println(arrayContainer3.getCardinality());
-        System.out.println(bitSet.cardinality());
-
-
     }
 }
