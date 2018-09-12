@@ -670,9 +670,17 @@ public class DynHighContainer extends HighContainer
         StringBuilder sb = new StringBuilder();
         sb.append("[");
 
+        int total = 0;
         Iterator<Integer> iterator = iterator();
         while (iterator.hasNext())
         {
+            total ++;
+            if (total == 1000)
+            {
+                sb.append("...");
+                sb.append(",");
+                break;
+            }
             sb.append(iterator.next());
             sb.append(",");
         }

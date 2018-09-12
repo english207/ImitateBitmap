@@ -53,6 +53,12 @@ public class ImitateBitmap implements Iterable<Integer>
         return new ImitateBitmap(newHc);
     }
 
+    public int getSizeInBytes()
+    {
+        return highContainer.getSizeInBytes();
+    }
+
+
     public Iterator<Integer> iterator()
     {
         return highContainer.iterator();
@@ -64,9 +70,18 @@ public class ImitateBitmap implements Iterable<Integer>
         StringBuilder sb = new StringBuilder();
         sb.append("[");
 
+        int total = 0;
         Iterator<Integer> iterator = iterator();
         while (iterator.hasNext())
         {
+            total ++;
+            if (total == 1000)
+            {
+                sb.append("...");
+                sb.append(",");
+                break;
+            }
+
             sb.append(iterator.next());
             sb.append(",");
         }
