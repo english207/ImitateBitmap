@@ -162,6 +162,12 @@ public class FileBitmapContainer extends Container
         return null;
     }
 
+    @Override
+    public Container clone()
+    {
+        return null;
+    }
+
     private long keys(int idx)
     {
         return readData(idx, mappedByteBuffer);

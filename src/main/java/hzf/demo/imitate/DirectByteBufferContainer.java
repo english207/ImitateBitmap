@@ -17,6 +17,22 @@ public class DirectByteBufferContainer extends Container
     private ByteBuffer buffer = null;
     private int cardinality = 0;
 
+    public DirectByteBufferContainer() {
+    }
+
+    public DirectByteBufferContainer(ByteBuffer newBuffer, int newCard)
+    {
+        if (newBuffer != null)
+        {
+            buffer = ByteBuffer.allocateDirect(newBuffer.capacity());
+
+
+            buffer.put(newBuffer.array());
+
+        }
+
+    }
+
     @Override
     public Container add(short x)
     {
@@ -221,6 +237,12 @@ public class DirectByteBufferContainer extends Container
 
     @Override
     public Container andNot(Container x) {
+        return null;
+    }
+
+    @Override
+    public Container clone()
+    {
         return null;
     }
 

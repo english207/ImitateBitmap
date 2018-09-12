@@ -18,6 +18,8 @@ public abstract class Container implements Iterable<Short>, Cloneable
         }
     }
 
+    public static long time;
+
     public abstract Container add(final short x);
 
     public abstract Container remove(final short x);
@@ -33,6 +35,9 @@ public abstract class Container implements Iterable<Short>, Cloneable
     public abstract Container or(final Container x);
 
     public abstract Container andNot(final Container x);
+
+    @Override
+    public abstract Container clone();
 
     protected static short highbits(int x) {
         return (short) (x >>> 16);

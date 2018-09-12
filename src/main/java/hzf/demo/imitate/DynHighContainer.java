@@ -25,10 +25,13 @@ public class DynHighContainer extends HighContainer
         short hb = highbits(x);
         short low = lowbits(x);
         int unsigned = toIntUnsigned(hb);
+
         int idx = findIdx(unsigned);
 
+        long start = System.nanoTime();
         Container container = array[idx];
         array[idx] = container.add(low);
+        time += System.nanoTime() - start;
 
         return this;
     }
@@ -120,7 +123,37 @@ public class DynHighContainer extends HighContainer
         low += Long.bitCount(high & whereIdx[k_offset]);
 
         Container container = array[((int) low)];
-        array[((int) low)] = container.remove(x_low);
+        container = container.remove(x_low);
+        array[((int) low)] = container;
+
+        int cardinality_new = container.cardinality();
+        if (cardinality_new == 0)           // 代表着这个容器里面的数据已经空了
+        {
+            Container[] newArray = new Container[array.length - 1];
+            if (low == 0)                           // head
+            {
+                System.arraycopy(this.array, 1, newArray, 0, (array.length - 1));
+            }
+            else if (low == array.length - 1)       // tail
+            {
+                System.arraycopy(this.array, 0, newArray, 0, (array.length - 1));
+            }
+            else
+            {
+                System.arraycopy(this.array, 0, newArray, 0, (int) low);
+                System.arraycopy(this.array, (int) (low + 1), newArray, (int) low, (int) (array.length - low - 1));
+            }
+            this.array = newArray;
+
+            long keyTmp = key & (1l << (k_offset + 32));
+            long key_result = key & (~keyTmp);
+            keys[idx_k] = key_result;
+
+            for (int i = idx_k + 1 ; i < keys_max ; i ++)
+            {
+                keys[i] -= 1;
+            }
+        }
 
         return this;
     }
@@ -191,19 +224,350 @@ public class DynHighContainer extends HighContainer
     }
 
     @Override
-    public HighContainer and(HighContainer x) {
+    public HighContainer and(HighContainer x)
+    {
+        if (x instanceof DynHighContainer)
+        {
+            return and((DynHighContainer)x);
+        }
         return null;
     }
 
-    @Override
-    public HighContainer or(HighContainer x) {
-        return null;
+
+    private long getKey(long[] _keys, int idx) {
+        return _keys != null ? _keys[idx] : 0;
+    }
+
+    private HighContainer checkIsEmpty(DynHighContainer dhc, int op)
+    {
+        DynHighContainer newContainer = null;
+        if (this.keys == null)
+        {
+            if (op == 1)       // or
+            {
+                if (dhc.keys != null)
+                {
+                    newContainer = new DynHighContainer();
+                    newContainer.keys = keysClone(dhc.keys);
+                    newContainer.array = containerClone(dhc.array);
+                }
+            }
+            else if ( op == 0 || op == 2 )       // andNot
+            {
+                newContainer = new DynHighContainer();
+            }
+        }
+        else if (dhc.keys == null)
+        {
+            if (op == 0)       // and
+            {
+                newContainer = new DynHighContainer();
+            }
+            else if (op == 1)       // or
+            {
+                newContainer = new DynHighContainer();
+                newContainer.keys = keysClone(this.keys);
+                newContainer.array = containerClone(this.array);
+            }
+            else if (op == 2)       // andNot
+            {
+                newContainer = new DynHighContainer();
+                newContainer.keys = keysClone(this.keys);
+                newContainer.array = containerClone(this.array);
+            }
+        }
+        return newContainer;
+    }
+
+    private HighContainer and(DynHighContainer dhc)
+    {
+        DynHighContainer newDsbc = (DynHighContainer) checkIsEmpty(dhc, 0);
+        if ( newDsbc != null) {
+            return newDsbc;
+        }
+
+        long[] newKeys = new long[2048];
+        Container[] newArray = new Container[65536];
+
+        int idx = 0;
+        int low_size = 0;
+        for (int i = 0; i < keys.length; i++)
+        {
+            long key1 = getKey(keys, i);
+            long key2 = getKey(dhc.keys, i);
+
+            long high1 = key1 >> 32 & 4294967295l;
+            long high2 = key2 >> 32 & 4294967295l;
+            long high_idx = high1 & high2;
+            if (high_idx == 0)
+            {
+                int l = i + 1;
+                if (l < 32) {
+                    newKeys[l] = newKeys[l] + low_size;
+                }
+                continue;
+            }
+
+            long high1_low = key1 & 4294967295l;
+            long high2_low = key2 & 4294967295l;
+            int high_each = 0;
+            int size = 0;
+            int bitCount = Long.bitCount(high_idx);
+            int findBit = 0;
+
+            for (int j = 0; j < 32 && findBit < bitCount; j++)
+            {
+                long high_idx_tmp = 1l << j;
+                if (high_idx_tmp > high_idx) {
+                    break;
+                }
+
+                if ( (high_idx & high_idx_tmp) != 0 )     // 对应位都存在
+                {
+                    findBit++;
+                    for (; high_each < j; high_each++)
+                    {
+                        high1_low += (high1 & 1 << high_each) != 0 ? 1 : 0;
+                        high2_low += (high2 & 1 << high_each) != 0 ? 1 : 0;
+                    }
+
+                    // 如果 对应位上不为0，则可以进行取值，如果为0，则代表着不需要进行取值，直接用0计算
+                    Container data1 = (high1 & high_idx_tmp) != 0 ? (high1_low >= this.array.length ? new DynScaleBitmapContainer() : this.array[((int) high1_low)]) : new DynScaleBitmapContainer();
+                    Container data2 = (high2 & high_idx_tmp) != 0 ? (high2_low >= dhc.array.length ? new DynScaleBitmapContainer() : dhc.array[((int) high2_low)]) : new DynScaleBitmapContainer();
+                    Container result = data1.and(data2);
+
+                    if (result.cardinality() == 0) {  // 对应位存在，但计算结果不存在，将key设置为0
+                        continue;
+                    }
+
+                    size++;
+                    newArray[idx++] = result;
+                    newKeys[i] |= 1l << (j + 32);
+                }
+            }
+
+            low_size += size;
+            int l = i + 1;
+            if (l < keys_max) {
+                newKeys[l] = newKeys[l] + low_size;
+            }
+        }
+
+        newDsbc = new DynHighContainer();
+        if (idx > 0)
+        {
+            Container[] newArrayTmp = new Container[idx];
+            System.arraycopy(newArray, 0, newArrayTmp, 0, idx);
+            newDsbc.keys = newKeys;
+            newDsbc.array = newArrayTmp;
+        }
+        return newDsbc;
     }
 
     @Override
-    public HighContainer andNot(HighContainer x) {
+    public HighContainer or(HighContainer x)
+    {
+        if (x instanceof DynHighContainer)
+        {
+            return or((DynHighContainer) x);
+        }
         return null;
     }
+
+    private HighContainer or(DynHighContainer dhc)
+    {
+        DynHighContainer newDhc = (DynHighContainer) checkIsEmpty(dhc, 0);
+        if ( newDhc != null) {
+            return newDhc;
+        }
+
+        long[] newKeys = new long[keys_max];
+        Container[] newArray = new Container[65536];
+
+        int idx = 0;            // 记录低位有多少array
+        int low_size = 0;       // 记录低位有多少个
+        for (int i = 0; i < keys.length; i++)
+        {
+            long key1 = this.keys[i];
+            long key2 = dhc.keys[i];
+
+            long high1 = key1 >> 32 & 4294967295l;
+            long high2 = key2 >> 32 & 4294967295l;
+            long high_idx = high1 | high2;
+            if (high_idx == 0) {
+                int l = i + 1;
+                if (l < 32) {
+                    newKeys[l] = newKeys[l] + low_size;
+                }
+                continue;
+            }
+
+            long high1_low = key1 & 4294967295l;
+            long high2_low = key2 & 4294967295l;
+            int high_each = 0;
+            int bitCount = Long.bitCount(high_idx);
+            int findBit = 0;
+
+            for (int j = 0; j < 32 && findBit < bitCount; j++)
+            {
+                long high_idx_tmp = 1l << j;
+                if (high_idx_tmp > high_idx) {
+                    break;
+                }
+
+                if ( (high_idx & high_idx_tmp) != 0 )       // 对应位中有一个存在
+                {
+                    findBit++;
+                    for (; high_each < j; high_each++)
+                    {
+                        high1_low += (high1 & 1 << high_each) != 0 ? 1 : 0;
+                        high2_low += (high2 & 1 << high_each) != 0 ? 1 : 0;
+                    }
+
+                    // 如果 对应位上不为0，则可以进行取值，如果为0，则代表着不需要进行取值，直接用0计算
+                    Container data1 = (high1 & high_idx_tmp) != 0 ? (high1_low >= this.array.length ? new DynScaleBitmapContainer() : this.array[((int) high1_low)]) : new DynScaleBitmapContainer();
+                    Container data2 = (high2 & high_idx_tmp) != 0 ? (high2_low >= dhc.array.length ? new DynScaleBitmapContainer() : dhc.array[((int) high2_low)]) : new DynScaleBitmapContainer();
+                    Container result = data1.or(data2);
+                    if (result.cardinality() == 0) {  // 对应位存在，但计算结果不存在，将key设置为0
+                        continue;
+                    }
+
+                    newArray[idx++] = result;
+                    newKeys[i] |= 1l << (j + 32);
+                }
+            }
+
+            low_size += Long.bitCount(newKeys[i] >>> 32);
+            int l = i + 1;
+            if (l < keys_max) {
+                newKeys[l] = newKeys[l] + low_size;
+            }
+        }
+
+        newDhc = new DynHighContainer();
+        if (idx > 0)
+        {
+            Container[] newArrayTmp = new Container[idx];
+            System.arraycopy(newArray, 0, newArrayTmp, 0, idx);
+            newDhc.keys = newKeys;
+            newDhc.array = newArrayTmp;
+        }
+        return newDhc;
+    }
+
+    @Override
+    public HighContainer andNot(HighContainer x)
+    {
+        if (x instanceof DynHighContainer)
+        {
+            return andNot((DynHighContainer) x);
+        }
+        return null;
+    }
+
+    private HighContainer andNot(DynHighContainer dhc)
+    {
+        DynHighContainer newDhc = (DynHighContainer) checkIsEmpty(dhc, 0);
+        if ( newDhc != null) {
+            return newDhc;
+        }
+
+        long[] newKeys = new long[keys_max];
+        Container[] newArray = new Container[65536];
+
+        int idx = 0;
+        int low_size = 0;       // 记录低位有多少个
+        for (int i = 0; i < keys.length; i++)
+        {
+            long key1 = this.keys[i];
+            long key2 = dhc.keys[i];
+
+            long high1 = key1 >> 32 & 4294967295l;
+            long high2 = key2 >> 32 & 4294967295l;
+            long high_idx = high1 & high2;
+
+            if (high_idx == 0)
+            {
+                if (high1 != 0)
+                {
+                    int high_low = (int)(key1 & 4294967295l);
+                    int idxSize = Long.bitCount(high1);
+                    for (int j = 0; j < idxSize; j++) {
+                        newArray[idx++] = this.array[j + high_low];
+                    }
+                    newKeys[i] += high1 << 32;
+                    low_size += idxSize;
+                }
+
+                int l = i + 1;
+                if (l < 32) {
+                    newKeys[l] = newKeys[l] + low_size;
+                }
+                continue;
+            }
+
+            long high1_low = key1 & 4294967295l;
+            long high2_low = key2 & 4294967295l;
+            int high_each = 0;
+
+            for (int j = 0; j < 32; j++)
+            {
+                long high_idx_tmp = 1l << j;
+                if (high_idx_tmp > high1) {
+                    break;
+                }
+
+                if ( (high_idx & high_idx_tmp) != 0 )       // 对应位中有一个存在
+                {
+                    for (; high_each < j; high_each++)
+                    {
+                        high1_low += (high1 & 1 << high_each) != 0 ? 1 : 0;
+                        high2_low += (high2 & 1 << high_each) != 0 ? 1 : 0;
+                    }
+
+                    // 如果 对应位上不为0，则可以进行取值，如果为0，则代表着不需要进行取值，直接用0计算
+                    Container data1 = (high1 & high_idx_tmp) != 0 ? (high1_low >= this.array.length ? new DynScaleBitmapContainer() : this.array[((int) high1_low)]) : new DynScaleBitmapContainer();
+                    Container data2 = (high2 & high_idx_tmp) != 0 ? (high2_low >=  dhc.array.length ? new DynScaleBitmapContainer() :  dhc.array[((int) high2_low)]) : new DynScaleBitmapContainer();
+                    Container result = data1.andNot(data2);
+
+                    if (result.cardinality() == 0) {  // 清除之后当前位上已经没有数了
+                        continue;
+                    }
+
+                    result = (result.cardinality() == data1.cardinality() ? data1 : result);
+                    newArray[idx++] = result; // 判断是否有变化
+                    newKeys[i] |= 1l << (j + 32);
+                    low_size += Long.bitCount(newKeys[i] >> 32);
+                }
+                else                                       // 对应位中不存在
+                {
+                    if ( (high1 & high_idx_tmp) != 0 )
+                    {
+                        Container data = high1_low >= this.array.length ? new DynScaleBitmapContainer() : this.array[(idx)];
+                        newArray[idx++] = data;
+                        newKeys[i] |= 1l << (j + 32);
+                        low_size += Long.bitCount(newKeys[i] >> 32);
+                    }
+                }
+            }
+
+            int l = i + 1;
+            if (l < keys_max) {
+                newKeys[l] = newKeys[l] + low_size;
+            }
+        }
+
+        newDhc = new DynHighContainer();
+        if (low_size > 0)
+        {
+            Container[] newArrayTmp = new Container[low_size];
+            System.arraycopy(newArray, 0, newArrayTmp, 0, low_size);
+            newDhc.keys = newKeys;
+            newDhc.array = newArrayTmp;
+        }
+        return newDhc;
+    }
+
 
     @Override
     public Iterator<Integer> iterator()
@@ -300,9 +664,32 @@ public class DynHighContainer extends HighContainer
         }
     }
 
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+
+        Iterator<Integer> iterator = iterator();
+        while (iterator.hasNext())
+        {
+            sb.append(iterator.next());
+            sb.append(",");
+        }
+
+        if (sb.length() > 1)
+        {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+
+        sb.append("]");
+        return sb.toString();
+    }
+
     public static void main(String[] args)
     {
         DynHighContainer highContainer = new DynHighContainer();
+        DynHighContainer highContainer2 = new DynHighContainer();
 
         highContainer.add(5);
         highContainer.add(5);
@@ -311,20 +698,21 @@ public class DynHighContainer extends HighContainer
         highContainer.add(66);
         highContainer.add(176554458);
 
-        System.out.println(highContainer.contain(66));
-        System.out.println(highContainer.contain(555));
-        System.out.println(highContainer.contain(176554458));
+        highContainer2.add(8);
+        highContainer2.add(5);
+        highContainer2.add(176554458);
+        HighContainer highContainer3 = highContainer.and(highContainer2);
 
+        System.out.println(highContainer);
+        System.out.println(highContainer3);
 
-        Iterator<Integer> iterator = highContainer.iterator();
-
-        while (iterator.hasNext())
-        {
-            System.out.println(iterator.next());
-        }
-
-        System.out.println("cardinality - " + highContainer.cardinality());
-        System.out.println("sizeInBytes - " + highContainer.getSizeInBytes());
+//
+//        System.out.println("cardinality - " + highContainer.cardinality());
+//        System.out.println("sizeInBytes - " + highContainer.getSizeInBytes());
+//
+//
+//        System.out.println("cardinality - " + highContainer3.cardinality());
+//        System.out.println("sizeInBytes - " + highContainer3.getSizeInBytes());
 
 
 

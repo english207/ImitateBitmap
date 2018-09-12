@@ -10,13 +10,23 @@ import java.util.concurrent.LinkedBlockingQueue;
  *
  *      动态伸缩bitmap
  */
-public class DynScaleBitmapContainer extends Container
+public class DynScaleBitmapContainer extends Container implements Cloneable
 {
     private long[] keys = null;
     private long[] array = null;     // 1024个
     private int cardinality = 0;
 
     public DynScaleBitmapContainer() {
+    }
+
+    public DynScaleBitmapContainer(long[] newKeys, long [] newArray, int newCard)
+    {
+        if (newKeys != null)
+        {
+            this.keys = Arrays.copyOf(newKeys, newKeys.length);
+            this.array = Arrays.copyOf(newArray, newArray.length);
+            this.cardinality = newCard;
+        }
     }
 
     @Override
@@ -220,6 +230,7 @@ public class DynScaleBitmapContainer extends Container
                     newContainer = new DynScaleBitmapContainer();
                     newContainer.keys = dsbc.keys.clone();
                     newContainer.array = dsbc.array.clone();
+                    newContainer.cardinality = dsbc.cardinality;
                 }
             }
             else if (op == 2)       // andNot
@@ -234,12 +245,14 @@ public class DynScaleBitmapContainer extends Container
                 newContainer = new DynScaleBitmapContainer();
                 newContainer.keys = this.keys.clone();
                 newContainer.array = this.array.clone();
+                newContainer.cardinality = this.cardinality;
             }
             else if (op == 2)       // andNot
             {
                 newContainer = new DynScaleBitmapContainer();
                 newContainer.keys = this.keys.clone();
                 newContainer.array = this.array.clone();
+                newContainer.cardinality = this.cardinality;
             }
         }
         return newContainer;
@@ -496,7 +509,7 @@ public class DynScaleBitmapContainer extends Container
                     result = (result == data1 ? data1 : result);
                     newArray[idx++] = result; // 判断是否有变化
                     newKeys[i] |= 1l << (j + 32);
-                    low_size += Long.bitCount(result);
+                    low_size += Long.bitCount(newKeys[i] >> 32);
                 }
                 else                                       // 对应位中不存在
                 {
@@ -505,7 +518,7 @@ public class DynScaleBitmapContainer extends Container
                         long data = high1_low >= this.array.length ? 0l : this.array[(idx)];
                         newArray[idx++] = data;
                         newKeys[i] |= 1l << (j + 32);
-                        low_size += Long.bitCount(data);
+                        low_size += Long.bitCount(newKeys[i] >> 32);
                     }
                 }
             }
@@ -655,23 +668,26 @@ public class DynScaleBitmapContainer extends Container
         return sb.toString();
     }
 
+    @Override
+    public DynScaleBitmapContainer clone()
+    {
+        return new DynScaleBitmapContainer(this.keys, this.array, this.cardinality);
+    }
+
     public static void main(String[] args)
     {
         long start = System.currentTimeMillis();
         DynScaleBitmapContainer container = new DynScaleBitmapContainer();
+        DynScaleBitmapContainer container2 = new DynScaleBitmapContainer();
+
         container.add((short) 3);
         container.add((short) 4);
-        container.add((short) 6844);
-        container.add((short) 16844);
-        container.add((short) 56844);
-        container.add((short) 4);
-        container.add((short) 170);
-        container.add((short) 125);
+        container2.add((short) 3);
 
         System.out.println(container.toString());
 
-        container.remove((short) 6844);
-        container.remove((short) 6845);
+        container = (DynScaleBitmapContainer) container.andNot(container2);
+
 
         System.out.println(container.toString());
 

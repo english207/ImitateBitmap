@@ -1,5 +1,7 @@
 package hzf.demo.imitate;
 
+import java.util.Arrays;
+
 /**
  * Created by WTO on 2018/6/8 0008.
  *
@@ -17,6 +19,8 @@ public abstract class HighContainer implements Iterable<Integer>, Cloneable
             whereIdx[i] = l;
         }
     }
+
+    public long time;
 
     public abstract HighContainer add(final int x);
 
@@ -44,6 +48,32 @@ public abstract class HighContainer implements Iterable<Integer>, Cloneable
 
     protected static int toIntUnsigned(short x) {
         return x & 0xFFFF;
+    }
+
+    protected static long[] keysClone(long[] keys)
+    {
+        if (keys == null)
+        {
+            return null;
+        }
+        return Arrays.copyOf(keys, keys.length);
+    }
+
+    protected static Container[] containerClone(Container[] containers)
+    {
+        if (containers == null)
+        {
+            return null;
+        }
+        Container[] newContainers = new Container[containers.length];
+        for (int i = 0; i < containers.length; i++)
+        {
+            Container container = containers[i];
+            Container newContainer = new DynScaleBitmapContainer();
+            newContainer = newContainer.or(container);
+            newContainers[i] = newContainer;
+        }
+        return newContainers;
     }
 
     public static void main(String[] args) {
