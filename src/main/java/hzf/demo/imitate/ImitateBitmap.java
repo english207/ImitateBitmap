@@ -3,7 +3,7 @@ package hzf.demo.imitate;
 import java.util.Iterator;
 
 /**
- * Created by WTO on 2018/8/23 0023.
+ * Created by hzf on 2018/8/23 0023.
  *
  */
 public class ImitateBitmap implements Iterable<Integer>
