@@ -1,5 +1,7 @@
 package hzf.demo.imitate;
 
+import org.roaringbitmap.Util;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
@@ -173,6 +175,60 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         _keys[idx_k] |= 1l << update_offset;
         for (int i = idx_k + 1; i < 32; i++) {
             _keys[i] = _keys[i] + size;
+        }
+    }
+
+    protected void loadData(ArrayContainer container)
+    {
+        this.keys = new long[32];
+        long[] tmpArray = new long[1024];
+        int last_update_k = 0;  // 0是不需要更新的
+        int update_low = 0;
+
+        for (int k = 0; k < container.cardinality; ++k)
+        {
+            int unsigned = toIntUnsigned(container.array[k]);
+
+            int idx = unsigned >> 6;    // 获得在array第几个位置
+            int idx_k = idx >> 5;       // 获得在idx在keys第几个位置
+            int k_offset = idx - idx_k * 32;        // 获得在当前key的高位的位置
+            long p_key = keys[idx_k];
+            long n_key = p_key | 1l << (k_offset + 32);
+
+            if (p_key != n_key)
+            {
+                keys[idx_k] = n_key;
+                if (idx_k - last_update_k > 0)
+                {
+                    for (int i = last_update_k + 1 ; i <= idx_k && idx < 31 ; i ++)
+                    {
+                        keys[i] = keys[i] + update_low;
+                    }
+                    last_update_k = idx_k;
+                }
+                update_low ++;
+            }
+
+            long p = tmpArray[idx];
+            long nval = p | 1l << (unsigned % 64);
+            tmpArray[idx] = nval;
+
+            this.cardinality ++;
+        }
+
+        for (int i = last_update_k + 1 ; i < 32 ; i ++)
+        {
+            keys[i] = keys[i] + update_low;
+        }
+
+        this.array = new long[update_low + 1];
+        int array_idx = 0;
+        for (long data : tmpArray)
+        {
+            if (data != 0)
+            {
+                this.array[array_idx++] = data;
+            }
         }
     }
 
@@ -542,6 +598,11 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         return newDsbc;
     }
 
+    @Override
+    public Container toNextContainer() {
+        return null;
+    }
+
 
     private long getKey(long[] _keys, int idx) {
         return _keys != null ? _keys[idx] : 0;
@@ -680,9 +741,10 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         DynScaleBitmapContainer container = new DynScaleBitmapContainer();
         DynScaleBitmapContainer container2 = new DynScaleBitmapContainer();
 
-        container.add((short) 3);
-        container.add((short) 4);
-        container2.add((short) 3);
+        container.add((short) 55);
+        container.add((short) 655);
+        container.add((short) 455);
+        container.add((short) 5555);
 
         System.out.println(container.toString());
 

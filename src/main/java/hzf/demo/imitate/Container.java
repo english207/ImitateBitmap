@@ -36,6 +36,8 @@ public abstract class Container implements Iterable<Short>, Cloneable
 
     public abstract Container andNot(final Container x);
 
+    public abstract Container toNextContainer();
+
     @Override
     public abstract Container clone();
 

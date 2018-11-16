@@ -31,23 +31,38 @@ public class BitmapContainer extends Container
     }
 
     @Override
-    public Container remove(short x) {
-        return null;
+    public Container remove(short x)
+    {
+        int unsigned = toIntUnsigned(x);
+        int idx = unsigned / 64;
+        long p = array[idx];
+        long dataTmp = 1l << (unsigned % 64);
+        long resultTmp = p & dataTmp;
+        long result = p & (~resultTmp);
+
+        if (result != p)    // 有变化，即本来位置上就没有对应的位
+        {
+            array[idx] = result;
+            cardinality --;
+        }
+        return this;
     }
 
     @Override
-    public boolean contain(short x) {
-        return false;
+    public boolean contain(short x)
+    {
+        int unsigned = toIntUnsigned(x);
+        return (array[unsigned / 64] & 1l << (unsigned % 64)) != 0 ;
     }
 
     @Override
     public int cardinality() {
-        return 0;
+        return cardinality;
     }
 
     @Override
     public int getSizeInBytes() {
-        return 0;
+        return 8196;
     }
 
     @Override
@@ -66,6 +81,11 @@ public class BitmapContainer extends Container
     }
 
     @Override
+    public Container toNextContainer() {
+        return null;
+    }
+
+    @Override
     public Container clone() {
         return null;
     }
@@ -73,5 +93,10 @@ public class BitmapContainer extends Container
     @Override
     public Iterator<Short> iterator() {
         return null;
+    }
+
+    protected void loadData(DynScaleBitmapContainer container)
+    {
+
     }
 }

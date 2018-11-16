@@ -6,14 +6,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Created by huangzhenfeng on 2018/9/10.
+ * Created by hzf on 2018/9/10.
  *
  */
 public class DynHighContainer extends HighContainer
 {
     private static final int keys_max = 2048;
     private long[] keys = null;      // 2048个
-    private Container[] array = null;     // 65536个
+    Container[] array = null;     // 65536个
 
     @Override
     public HighContainer add(int x)
@@ -28,10 +28,10 @@ public class DynHighContainer extends HighContainer
 
         int idx = findIdx(unsigned);
 
-        long start = System.nanoTime();
+//        long start = System.nanoTime();
         Container container = array[idx];
         array[idx] = container.add(low);
-        time += System.nanoTime() - start;
+//        time += System.nanoTime() - start;
 
         return this;
     }
@@ -60,23 +60,45 @@ public class DynHighContainer extends HighContainer
         return (int) low;
     }
 
+//    private void increaseCapacity(int low)
+//    {
+//        time += 1;
+//        if (array == null) {
+//            array = new Container[1];
+//            this.array[low] = new DynScaleBitmapContainer();
+//            return;
+//        }
+//        if (low >= array.length)
+//        {
+//            this.array = Arrays.copyOf(array, low + 1);
+//            this.array[low] = new DynScaleBitmapContainer();
+//        }
+//        else if (low < array.length)
+//        {
+//            this.array = Arrays.copyOf(array, array.length + 1);
+//            System.arraycopy(array, low, array, low + 1, array.length - low - 1);
+//            this.array[low] = new DynScaleBitmapContainer();
+//        }
+//    }
+
     private void increaseCapacity(int low)
     {
+        time += 1;
         if (array == null) {
             array = new Container[1];
-            this.array[low] = new DynScaleBitmapContainer();
+            this.array[low] = new ArrayContainer();
             return;
         }
         if (low >= array.length)
         {
             this.array = Arrays.copyOf(array, low + 1);
-            this.array[low] = new DynScaleBitmapContainer();
+            this.array[low] = new ArrayContainer();
         }
         else if (low < array.length)
         {
             this.array = Arrays.copyOf(array, array.length + 1);
             System.arraycopy(array, low, array, low + 1, array.length - low - 1);
-            this.array[low] = new DynScaleBitmapContainer();
+            this.array[low] = new ArrayContainer();
         }
     }
 

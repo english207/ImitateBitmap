@@ -64,6 +64,22 @@ public class ImitateBitmap implements Iterable<Integer>
         return highContainer.iterator();
     }
 
+    public int howmanyDyn()
+    {
+        DynHighContainer dynHighContainer = (DynHighContainer) highContainer;
+
+        int i = 0;
+        for (Container container : dynHighContainer.array)
+        {
+            if (container instanceof DynScaleBitmapContainer)
+            {
+                i++;
+            }
+        }
+
+        return i;
+    }
+
     @Override
     public String toString()
     {

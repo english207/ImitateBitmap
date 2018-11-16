@@ -163,6 +163,11 @@ public class FileBitmapContainer extends Container
     }
 
     @Override
+    public Container toNextContainer() {
+        return null;
+    }
+
+    @Override
     public Container clone()
     {
         return null;
