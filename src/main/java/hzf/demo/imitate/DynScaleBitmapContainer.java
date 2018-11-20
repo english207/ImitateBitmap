@@ -1,9 +1,12 @@
 package hzf.demo.imitate;
 
+import org.roaringbitmap.RoaringBitmap;
 import org.roaringbitmap.Util;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -17,6 +20,7 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
     private long[] keys = null;
     private long[] array = null;     // 1024个
     private int cardinality = 0;
+    private short limit = 0;
 
     public DynScaleBitmapContainer() {
     }
@@ -40,6 +44,10 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         int unsigned = toIntUnsigned(x);
         int idx = findIdx(unsigned);
 
+        if (idx >= array.length)
+        {
+            idx = 0;
+        }
         long p = array[idx];
         long nval = p | 1l << (unsigned % 64);
         array[idx] = nval;
@@ -145,24 +153,41 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
             increaseCapacity((int) low);
             update(idx_k, k_offset + 32);
         }
+
         return (int) low;
     }
 
     private void increaseCapacity(int low)
     {
         if (array == null) {
-            array = new long[1];
+            array = new long[4];
+            limit = 0;
             return;
         }
-        if (low >= array.length)
+
+        if (low > limit)    //low一定是比上一个最大的low要大1
         {
-            this.array = Arrays.copyOf(array, low + 1);
+            if (low == array.length)                // 需要扩容
+            {
+                this.array = Arrays.copyOf(array, low + 4);
+            }
+            limit = (short) low;
         }
-        else if (low < array.length)
+        else if (low <= limit)                       // 从中间往后移动
         {
-            this.array = Arrays.copyOf(array, array.length + 1);
-            System.arraycopy(array, low, array, low + 1, array.length - low - 1);
-            this.array[low] = 0;
+            if (limit == array.length - 1)          // 扩容
+            {
+                this.array = Arrays.copyOf(array, array.length + 4);
+                System.arraycopy(array, low, array, low + 1, limit - low + 1);
+                this.array[low] = 0;
+                limit ++;
+            }
+            else
+            {
+                System.arraycopy(array, low, array, low + 1, limit - low + 1);
+                this.array[low] = 0;
+                limit ++;
+            }
         }
     }
 
@@ -175,60 +200,6 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         _keys[idx_k] |= 1l << update_offset;
         for (int i = idx_k + 1; i < 32; i++) {
             _keys[i] = _keys[i] + size;
-        }
-    }
-
-    protected void loadData(ArrayContainer container)
-    {
-        this.keys = new long[32];
-        long[] tmpArray = new long[1024];
-        int last_update_k = 0;  // 0是不需要更新的
-        int update_low = 0;
-
-        for (int k = 0; k < container.cardinality; ++k)
-        {
-            int unsigned = toIntUnsigned(container.array[k]);
-
-            int idx = unsigned >> 6;    // 获得在array第几个位置
-            int idx_k = idx >> 5;       // 获得在idx在keys第几个位置
-            int k_offset = idx - idx_k * 32;        // 获得在当前key的高位的位置
-            long p_key = keys[idx_k];
-            long n_key = p_key | 1l << (k_offset + 32);
-
-            if (p_key != n_key)
-            {
-                keys[idx_k] = n_key;
-                if (idx_k - last_update_k > 0)
-                {
-                    for (int i = last_update_k + 1 ; i <= idx_k && idx < 31 ; i ++)
-                    {
-                        keys[i] = keys[i] + update_low;
-                    }
-                    last_update_k = idx_k;
-                }
-                update_low ++;
-            }
-
-            long p = tmpArray[idx];
-            long nval = p | 1l << (unsigned % 64);
-            tmpArray[idx] = nval;
-
-            this.cardinality ++;
-        }
-
-        for (int i = last_update_k + 1 ; i < 32 ; i ++)
-        {
-            keys[i] = keys[i] + update_low;
-        }
-
-        this.array = new long[update_low + 1];
-        int array_idx = 0;
-        for (long data : tmpArray)
-        {
-            if (data != 0)
-            {
-                this.array[array_idx++] = data;
-            }
         }
     }
 
@@ -393,11 +364,18 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         newDsbc = new DynScaleBitmapContainer();
         if (idx > 0)
         {
-            long[] newArrayTmp = new long[idx];
+            int len = idx / 8 * 8;
+            if (len < idx)
+            {
+                len += 8;
+            }
+
+            long[] newArrayTmp = new long[len];
             System.arraycopy(newArray, 0, newArrayTmp, 0, idx);
             newDsbc.keys = newKeys;
             newDsbc.array = newArrayTmp;
             newDsbc.cardinality = newCardinality;
+            newDsbc.limit = (short) idx;
         }
         return newDsbc;
     }
@@ -480,11 +458,18 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         newDsbc = new DynScaleBitmapContainer();
         if (idx > 0)
         {
-            long[] newArrayTmp = new long[idx];
+            int len = idx / 8 * 8;
+            if (len < idx)
+            {
+                len += 8;
+            }
+
+            long[] newArrayTmp = new long[len];
             System.arraycopy(newArray, 0, newArrayTmp, 0, idx);
             newDsbc.keys = newKeys;
             newDsbc.array = newArrayTmp;
             newDsbc.cardinality = newCardinality;
+            newDsbc.limit = (short) idx;
         }
         return newDsbc;
     }
@@ -589,11 +574,18 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         newDsbc = new DynScaleBitmapContainer();
         if (low_size > 0)
         {
+            int len = low_size / 8 * 8;
+            if (len < low_size)
+            {
+                len += 8;
+            }
+
             long[] newArrayTmp = new long[low_size];
             System.arraycopy(newArray, 0, newArrayTmp, 0, low_size);
             newDsbc.keys = newKeys;
             newDsbc.array = newArrayTmp;
             newDsbc.cardinality = newCardinality;
+            newDsbc.limit = (short) low_size;
         }
         return newDsbc;
     }
@@ -729,6 +721,61 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         return sb.toString();
     }
 
+    protected void loadData(ArrayContainer container)
+    {
+        this.keys = new long[32];
+        long[] tmpArray = new long[1024];
+        int last_update_k = 0;  // 0是不需要更新的
+        int update_low = 0;
+
+        for (int k = 0; k < container.cardinality; ++k)
+        {
+            int unsigned = toIntUnsigned(container.array[k]);
+
+            int idx = unsigned >> 6;    // 获得在array第几个位置
+            int idx_k = idx >> 5;       // 获得在idx在keys第几个位置
+            int k_offset = idx - idx_k * 32;        // 获得在当前key的高位的位置
+            long p_key = keys[idx_k];
+            long n_key = p_key | 1l << (k_offset + 32);
+
+            if (p_key != n_key)
+            {
+                keys[idx_k] = n_key;
+                if (idx_k - last_update_k > 0)
+                {
+                    for (int i = last_update_k + 1 ; i <= idx_k && idx < 31 ; i ++)
+                    {
+                        keys[i] = keys[i] + update_low;
+                    }
+                    last_update_k = idx_k;
+                }
+                update_low ++;
+            }
+
+            long p = tmpArray[idx];
+            long nval = p | 1l << (unsigned % 64);
+            tmpArray[idx] = nval;
+
+            this.cardinality ++;
+        }
+
+        for (int i = last_update_k + 1 ; i < 32 ; i ++)
+        {
+            keys[i] = keys[i] + update_low;
+        }
+
+        this.array = new long[update_low + 1];
+        this.limit = (short) update_low;
+        int array_idx = 0;
+        for (long data : tmpArray)
+        {
+            if (data != 0)
+            {
+                this.array[array_idx++] = data;
+            }
+        }
+    }
+
     @Override
     public DynScaleBitmapContainer clone()
     {
@@ -738,24 +785,42 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
     public static void main(String[] args)
     {
         long start = System.currentTimeMillis();
-        DynScaleBitmapContainer container = new DynScaleBitmapContainer();
-        DynScaleBitmapContainer container2 = new DynScaleBitmapContainer();
 
-        container.add((short) 55);
-        container.add((short) 655);
-        container.add((short) 455);
-        container.add((short) 5555);
+        RoaringBitmap roaringBitmap = new RoaringBitmap();
+        Container container = new ArrayContainer();
+        Container container3 = new DynScaleBitmapContainer();
+        org.roaringbitmap.Container arrayContainer = new org.roaringbitmap.ArrayContainer();
 
-        System.out.println(container.toString());
+        Set<Integer> bitSet = new HashSet<Integer>();
+        for (int i = 0; i < 10000; i++)
+        {
+            int word = (int) ((Math.random() * 65500));
 
-        container = (DynScaleBitmapContainer) container.andNot(container2);
+            if (word == 0) {
+                continue;
+            }
 
+            roaringBitmap.add(word);
+            container = container.add((short) word);
+            container3 = container3.add((short) word);
+            arrayContainer = arrayContainer.add((short) word);
+        }
 
-        System.out.println(container.toString());
+        System.out.println(roaringBitmap.toString());
+        System.out.println(container3.toString());
+//        Container container2 =  container.toNextContainer();
+//        System.out.println(container2.toString());
+//        System.out.println(container.toString());
+        System.out.println(arrayContainer.toString());
 
-        System.out.println(System.currentTimeMillis() - start);
+        for (Short s : arrayContainer)
+        {
+            if ( !container3.contain(s) )
+            {
+                System.out.println(s);
+            }
+        }
+
     }
-
-
 
 }

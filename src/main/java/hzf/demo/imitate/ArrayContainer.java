@@ -1,7 +1,6 @@
 package hzf.demo.imitate;
 
 import hzf.demo.imitate.utils.Search;
-import org.roaringbitmap.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -19,11 +18,15 @@ public class ArrayContainer extends Container
 
     private static final int DEFAULT_MAX_SIZE = 4096;
     private static final int DEFAULT_INIT_SIZE = 4;
-    private static final int ARRAY_LAZY_LOWERBOUND = 1024;
 
     public ArrayContainer()
     {
         this.array = new short[4];
+    }
+
+    public ArrayContainer(final int capacity)
+    {
+        this.array = new short[capacity];
     }
 
     @Override
@@ -80,12 +83,12 @@ public class ArrayContainer extends Container
 
     @Override
     public int cardinality() {
-        return 0;
+        return this.cardinality;
     }
 
     @Override
     public int getSizeInBytes() {
-        return this.cardinality * 2 + 4;
+        return this.array.length * 2 + 4;
     }
 
     @Override
@@ -110,23 +113,37 @@ public class ArrayContainer extends Container
 
     @Override
     public Iterator<Short> iterator() {
-        return null;
+        return new ArrayContainerIterator();
+    }
+
+    class ArrayContainerIterator implements Iterator<Short>
+    {
+        private int idx = 0;
+        @Override
+        public boolean hasNext() {
+            return idx != cardinality;
+        }
+
+        @Override
+        public Short next() {
+            return array[idx++];
+        }
     }
 
     @Override
     public String toString() {
 
         if (this.cardinality == 0) {
-            return "{}";
+            return "[]";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("{");
+        sb.append("[");
         for (int i = 0; i < this.cardinality - 1; i++) {
-            sb.append(this.array[i]);
+            sb.append(toIntUnsigned(this.array[i]));
             sb.append(",");
         }
-        sb.append(this.array[this.cardinality - 1]);
-        sb.append("}");
+        sb.append(toIntUnsigned(this.array[this.cardinality - 1]));
+        sb.append("]");
         return sb.toString();
     }
 
@@ -139,6 +156,8 @@ public class ArrayContainer extends Container
         dynScaleBitmapContainer.loadData(this);
         return dynScaleBitmapContainer;
     }
+
+
 
     public static void main(String[] args) {
 

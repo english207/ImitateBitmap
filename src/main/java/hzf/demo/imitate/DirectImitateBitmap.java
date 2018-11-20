@@ -6,16 +6,16 @@ import java.util.Iterator;
  * Created by hzf on 2018/8/23 0023.
  *
  */
-public class ImitateBitmap implements Iterable<Integer>
+public class DirectImitateBitmap implements Iterable<Integer>
 {
     public HighContainer highContainer = null;
 
-    public ImitateBitmap()
+    public DirectImitateBitmap()
     {
         this.highContainer = new DynHighContainer();
     }
 
-    public ImitateBitmap(HighContainer hc)
+    public DirectImitateBitmap(HighContainer hc)
     {
         if (hc == null)
         {
@@ -35,22 +35,22 @@ public class ImitateBitmap implements Iterable<Integer>
         return this.highContainer.contain(x);
     }
 
-    public ImitateBitmap and(ImitateBitmap x)
+    public DirectImitateBitmap and(DirectImitateBitmap x)
     {
         HighContainer newHc = highContainer.and(x.highContainer);
-        return new ImitateBitmap(newHc);
+        return new DirectImitateBitmap(newHc);
     }
 
-    public ImitateBitmap or(ImitateBitmap x)
+    public DirectImitateBitmap or(DirectImitateBitmap x)
     {
         HighContainer newHc = highContainer.or(x.highContainer);
-        return new ImitateBitmap(newHc);
+        return new DirectImitateBitmap(newHc);
     }
 
-    public ImitateBitmap andNot(ImitateBitmap x)
+    public DirectImitateBitmap andNot(DirectImitateBitmap x)
     {
         HighContainer newHc = highContainer.andNot(x.highContainer);
-        return new ImitateBitmap(newHc);
+        return new DirectImitateBitmap(newHc);
     }
 
     public int getSizeInBytes()
@@ -78,11 +78,6 @@ public class ImitateBitmap implements Iterable<Integer>
         }
 
         return i;
-    }
-
-    public int cardinality()
-    {
-        return highContainer.cardinality();
     }
 
     @Override

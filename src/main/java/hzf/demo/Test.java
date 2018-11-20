@@ -30,9 +30,10 @@ public class Test
 
 
         Set<String> bitSet = new HashSet<String>();
-        for (int i = 0; i < 1000000; i++)
+        for (int i = 0; i < 10000; i++)
         {
-            int word = Double.valueOf(Math.random() * Integer.MAX_VALUE - 1).intValue();
+//            int word = Double.valueOf(Math.random() * Integer.MAX_VALUE - 1).intValue();
+            int word = (int) ((Math.random() * Short.MAX_VALUE));
             bitSet.add(String.valueOf(word));
         }
 
@@ -51,12 +52,34 @@ public class Test
         }
         long end2 = System.nanoTime();
 
+        System.out.println("cardinality1 - " + bitmap.cardinality());
+        System.out.println("cardinality2 - " + bitmap2.getCardinality());
         System.out.println("bytes1 - " + bitmap.getSizeInBytes());
         System.out.println("bytes2 - " + bitmap2.getSizeInBytes());
         System.out.println("time1 - " + (end1 - start1) / 1000 /1000);
         System.out.println("time2 - " + (end2 - start2) / 1000 /1000);
         System.out.println("extend - " + bitmap.highContainer.time / 1000 /1000);
         System.out.println("howmanyDyn - " + bitmap.howmanyDyn());
+
+        boolean flag = true;
+        for (String integer : bitSet)
+        {
+            flag = flag && bitmap.contain(Integer.valueOf(integer));
+        }
+
+        System.out.println(flag);
+
+        flag = true;
+        for (String integer : bitSet)
+        {
+            flag = flag && bitmap2.contains(Integer.valueOf(integer));
+        }
+        System.out.println(flag);
+
+        System.out.println(bitmap);
+        System.out.println(bitmap2);
+
+        System.out.println();
 
 //        System.out.println(bitmap.or(bitmap2));
     }

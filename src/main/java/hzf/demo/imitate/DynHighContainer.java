@@ -12,8 +12,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class DynHighContainer extends HighContainer
 {
     private static final int keys_max = 2048;
-    private long[] keys = null;      // 2048个
-    Container[] array = null;     // 65536个
+    protected long[] keys = null;      // 2048个
+    protected Container[] array = null;     // 65536个
+    protected short limit = 0;
 
     @Override
     public HighContainer add(int x)
@@ -28,11 +29,8 @@ public class DynHighContainer extends HighContainer
 
         int idx = findIdx(unsigned);
 
-//        long start = System.nanoTime();
         Container container = array[idx];
         array[idx] = container.add(low);
-//        time += System.nanoTime() - start;
-
         return this;
     }
 
@@ -41,7 +39,6 @@ public class DynHighContainer extends HighContainer
     {
         int idx_k = idx >> 5;
         long key = keys[idx_k];
-
         long high = key >> 32;
         int k_offset = idx - idx_k * 32;
 
@@ -60,46 +57,41 @@ public class DynHighContainer extends HighContainer
         return (int) low;
     }
 
-//    private void increaseCapacity(int low)
-//    {
-//        time += 1;
-//        if (array == null) {
-//            array = new Container[1];
-//            this.array[low] = new DynScaleBitmapContainer();
-//            return;
-//        }
-//        if (low >= array.length)
-//        {
-//            this.array = Arrays.copyOf(array, low + 1);
-//            this.array[low] = new DynScaleBitmapContainer();
-//        }
-//        else if (low < array.length)
-//        {
-//            this.array = Arrays.copyOf(array, array.length + 1);
-//            System.arraycopy(array, low, array, low + 1, array.length - low - 1);
-//            this.array[low] = new DynScaleBitmapContainer();
-//        }
-//    }
-
     private void increaseCapacity(int low)
     {
-        time += 1;
         if (array == null) {
-            array = new Container[1];
+            array = new Container[8];
             this.array[low] = new ArrayContainer();
+            limit = 0;
             return;
         }
-        if (low >= array.length)
+
+        if (low > limit)    //low一定是比上一个最大的low要大1
         {
-            this.array = Arrays.copyOf(array, low + 1);
+            if (low == array.length)                // 需要扩容
+            {
+                this.array = Arrays.copyOf(array, low + 8);
+            }
             this.array[low] = new ArrayContainer();
+            limit = (short) low;
         }
-        else if (low < array.length)
+        else if (low <= limit)                       // 从中间往后移动
         {
-            this.array = Arrays.copyOf(array, array.length + 1);
-            System.arraycopy(array, low, array, low + 1, array.length - low - 1);
-            this.array[low] = new ArrayContainer();
+            if (limit == array.length - 1)          // 扩容
+            {
+                this.array = Arrays.copyOf(array, array.length + 8);
+                System.arraycopy(array, low, array, low + 1, limit - low + 1);
+                this.array[low] = new ArrayContainer();
+                limit ++;
+            }
+            else
+            {
+                System.arraycopy(array, low, array, low + 1, limit - low + 1);
+                this.array[low] = new ArrayContainer();
+                limit ++;
+            }
         }
+
     }
 
     private void update(int idx_k, int update_offset) {
@@ -222,6 +214,10 @@ public class DynHighContainer extends HighContainer
             int cardinality = 0;
             for (Container container : array)
             {
+                if (container == null)
+                {
+                    break;
+                }
                 cardinality += container.cardinality();
             }
             return cardinality;
@@ -235,9 +231,8 @@ public class DynHighContainer extends HighContainer
         if (array != null)
         {
             int sizeInBytes = 0;
-            for (Container container : array)
-            {
-                sizeInBytes += container.getSizeInBytes();
+            for (int i = 0; i < limit; i++) {
+                sizeInBytes += array[i].getSizeInBytes();
             }
             return sizeInBytes + 2048 * 8;
         }

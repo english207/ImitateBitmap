@@ -55,9 +55,10 @@ public class Test2
 
         start = System.nanoTime();
         boolean flag = true;
+
         for (Integer integer : sets)
         {
-            flag = flag && roaringContainer.contains(integer.shortValue());
+            flag = flag && container.contain(integer.shortValue());
         }
         System.out.println((System.nanoTime() - start) / 1000  + " - ms");
 
@@ -65,7 +66,7 @@ public class Test2
         flag = true;
         for (Integer integer : sets)
         {
-            flag = flag && container.contain(integer.shortValue());
+            flag = flag && roaringContainer.contains(integer.shortValue());
         }
         System.out.println((System.nanoTime() - start) / 1000  + " - ms");
 
