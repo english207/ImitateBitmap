@@ -30,10 +30,10 @@ public class Test
 
 
         Set<String> bitSet = new HashSet<String>();
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < 10000000; i++)
         {
-//            int word = Double.valueOf(Math.random() * Integer.MAX_VALUE - 1).intValue();
-            int word = (int) ((Math.random() * Short.MAX_VALUE));
+            int word = (int) (Math.random() * Integer.MAX_VALUE);
+//            int word = (int) ((Math.random() * Short.MAX_VALUE * 20));
             bitSet.add(String.valueOf(word));
         }
 
@@ -61,20 +61,24 @@ public class Test
         System.out.println("extend - " + bitmap.highContainer.time / 1000 /1000);
         System.out.println("howmanyDyn - " + bitmap.howmanyDyn());
 
+        long start3 = System.nanoTime();
         boolean flag = true;
         for (String integer : bitSet)
         {
             flag = flag && bitmap.contain(Integer.valueOf(integer));
         }
+        long end = System.nanoTime() - start3;
 
-        System.out.println(flag);
+        System.out.println(flag + " - " + end / 1000 / 1000);
 
+        start3 = System.nanoTime();
         flag = true;
         for (String integer : bitSet)
         {
             flag = flag && bitmap2.contains(Integer.valueOf(integer));
         }
-        System.out.println(flag);
+        end = System.nanoTime() - start3;
+        System.out.println(flag + " - " + end / 1000 / 1000);
 
         System.out.println(bitmap);
         System.out.println(bitmap2);

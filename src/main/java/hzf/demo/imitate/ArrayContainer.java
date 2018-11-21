@@ -38,7 +38,7 @@ public class ArrayContainer extends Container
             if (cardinality >= DEFAULT_MAX_SIZE)
             {
                 Container container = toNextContainer();
-                container.add(x);
+                container = container.add(x);
                 return container;
             }
             if (cardinality >= this.array.length)
@@ -88,7 +88,7 @@ public class ArrayContainer extends Container
 
     @Override
     public int getSizeInBytes() {
-        return this.array.length * 2 + 4;
+        return this.cardinality * 2 + 4;
     }
 
     @Override

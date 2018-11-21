@@ -743,7 +743,7 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
                 keys[idx_k] = n_key;
                 if (idx_k - last_update_k > 0)
                 {
-                    for (int i = last_update_k + 1 ; i <= idx_k && idx < 31 ; i ++)
+                    for (int i = last_update_k + 1 ; i <= idx_k && last_update_k < 31 ; i ++)
                     {
                         keys[i] = keys[i] + update_low;
                     }
@@ -765,7 +765,7 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         }
 
         this.array = new long[update_low + 1];
-        this.limit = (short) update_low;
+        this.limit = (short) (update_low - 1);
         int array_idx = 0;
         for (long data : tmpArray)
         {
@@ -792,12 +792,18 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
         org.roaringbitmap.Container arrayContainer = new org.roaringbitmap.ArrayContainer();
 
         Set<Integer> bitSet = new HashSet<Integer>();
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i <= 4097; i++)
         {
-            int word = (int) ((Math.random() * 65500));
+//            int word = (int) ((Math.random() * 65500));
+            int word = (int) (i);
 
             if (word == 0) {
                 continue;
+            }
+
+            if (word == 4096)
+            {
+                System.out.println("2");
             }
 
             roaringBitmap.add(word);
@@ -806,12 +812,12 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
             arrayContainer = arrayContainer.add((short) word);
         }
 
-        System.out.println(roaringBitmap.toString());
+//        System.out.println(roaringBitmap.toString());
         System.out.println(container3.toString());
 //        Container container2 =  container.toNextContainer();
 //        System.out.println(container2.toString());
 //        System.out.println(container.toString());
-        System.out.println(arrayContainer.toString());
+//        System.out.println(arrayContainer.toString());
 
         for (Short s : arrayContainer)
         {
