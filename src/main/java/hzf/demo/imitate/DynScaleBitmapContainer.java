@@ -241,7 +241,8 @@ public class DynScaleBitmapContainer extends Container implements Cloneable
 
     public int getSizeInBytes()
     {
-        int size = (keys != null ? keys.length * 8 : 0) + (array != null ? array.length * 8 : 0);
+//        int size = (keys != null ? keys.length * 8 : 0) + (array != null ? array.length * 8 : 0);
+        int size = (keys != null ? this.cardinality * 8 : 0) + (array != null ? this.cardinality * 8 : 0);
         return size + 4;
     }
 

@@ -30,7 +30,7 @@ public class Test
 
 
         Set<String> bitSet = new HashSet<String>();
-        for (int i = 0; i < 10000000; i++)
+        for (int i = 0; i < 1; i++)
         {
             int word = (int) (Math.random() * Integer.MAX_VALUE);
 //            int word = (int) ((Math.random() * Short.MAX_VALUE * 20));

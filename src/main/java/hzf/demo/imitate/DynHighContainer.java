@@ -230,11 +230,11 @@ public class DynHighContainer extends HighContainer
     {
         if (array != null)
         {
-            int sizeInBytes = 0;
-            for (int i = 0; i < limit; i++) {
+            int sizeInBytes = 2;
+            for (int i = 0; i <= limit; i++) {
                 sizeInBytes += array[i].getSizeInBytes();
             }
-            return sizeInBytes + 2048 * 8;
+            return sizeInBytes;
         }
 
         return 0;
