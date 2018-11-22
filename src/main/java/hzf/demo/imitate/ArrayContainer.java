@@ -128,6 +128,11 @@ public class ArrayContainer extends Container
         public Short next() {
             return array[idx++];
         }
+
+        @Override
+        public void remove() {
+
+        }
     }
 
     @Override
