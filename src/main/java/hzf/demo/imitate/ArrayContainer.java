@@ -169,12 +169,11 @@ public class ArrayContainer extends Container
         Container container = new ArrayContainer();
 
 
-        container.add((short) 55);
-        container.add((short) 655);
-        container.add((short) 455);
-        container.add((short) 5555);
+        container.add((short) 5);
+        container.add((short) 9);
 
-        container = container.toNextContainer();
+        container.contain((short) 6);
+
 
         System.out.println(container);
 

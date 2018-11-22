@@ -25,10 +25,7 @@ public class DirectByteBufferContainer extends Container
         if (newBuffer != null)
         {
             buffer = ByteBuffer.allocateDirect(newBuffer.capacity());
-
-
             buffer.put(newBuffer.array());
-
         }
 
     }
