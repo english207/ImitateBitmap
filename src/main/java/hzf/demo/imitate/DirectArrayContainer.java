@@ -15,8 +15,8 @@ import java.util.Iterator;
  */
 public class DirectArrayContainer extends Container
 {
-    private ByteBuffer buffer = null;
-    private int cardinality = 0;
+    protected ByteBuffer buffer = null;
+    protected int cardinality = 0;
 
     private static final int DEFAULT_MAX_SIZE = 4096;
     private static final int DEFAULT_INIT_SIZE = 4;
@@ -24,7 +24,7 @@ public class DirectArrayContainer extends Container
 
     public DirectArrayContainer()
     {
-        this.buffer = ByteBuffer.allocateDirect(4 * SHOT_BYTES);
+        this.buffer = ByteBuffer.allocateDirect(4 << 1);
         this.buffer.limit(SHOT_BYTES);
     }
 
@@ -36,13 +36,13 @@ public class DirectArrayContainer extends Container
 
     protected short array(int idx)
     {
-        int _idx = idx * SHOT_BYTES;
+        int _idx = idx << 1;
         return buffer.getShort(_idx);
     }
 
     protected void array_update(int idx, short data)
     {
-        int _idx = idx * SHOT_BYTES;
+        int _idx = idx << 1;
         buffer.putShort(_idx, data);
     }
 
@@ -58,7 +58,7 @@ public class DirectArrayContainer extends Container
                 container = container.add(x);
                 return container;
             }
-            if (cardinality >= this.buffer.limit() * SHOT_BYTES)
+            if (cardinality >= this.buffer.capacity() >> 1)
             {
                 increaseCapacity(false);
             }
@@ -71,13 +71,13 @@ public class DirectArrayContainer extends Container
 
     private void bufferMoveShort(ByteBuffer buffer, int srcPos, int tarPos, int len)
     {
-        buffer.position(srcPos * SHOT_BYTES);
-        buffer.limit((len + srcPos) * SHOT_BYTES);
+        buffer.position(srcPos << 1);
+        buffer.limit((len + srcPos) << 1);
 
         ByteBuffer buffer1 = buffer.slice();
 
-        buffer.limit((cardinality + 1) * SHOT_BYTES);
-        buffer.position(tarPos * SHOT_BYTES);
+        buffer.limit((cardinality + 1) << 1);
+        buffer.position(tarPos << 1);
         buffer.put(buffer1);
     }
 
@@ -118,12 +118,12 @@ public class DirectArrayContainer extends Container
 
     @Override
     public int cardinality() {
-        return 0;
+        return cardinality;
     }
 
     @Override
     public int getSizeInBytes() {
-        return 0;
+        return this.cardinality * 2 + 4;
     }
 
     @Override
@@ -142,13 +142,33 @@ public class DirectArrayContainer extends Container
     }
 
     @Override
-    public Container toNextContainer() {
-        return null;
+    public Container toNextContainer()
+    {
+        DirectBitmapContainer directBitmapContainer = new DirectBitmapContainer();
+        directBitmapContainer.loadData(this);
+        return directBitmapContainer;
     }
 
     @Override
     public Container clone() {
         return null;
+    }
+
+    @Override
+    public String toString()
+    {
+        if (this.cardinality == 0) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < this.cardinality - 1; i++) {
+            sb.append(toIntUnsigned(this.array(i)));
+            sb.append(",");
+        }
+        sb.append(toIntUnsigned(this.array(this.cardinality - 1)));
+        sb.append("]");
+        return sb.toString();
     }
 
     public void test()
@@ -194,10 +214,16 @@ public class DirectArrayContainer extends Container
         container.add((short) 5);
         container.add((short) 2);
         container.add((short) 95);
+        container.add((short) 9);
+        container.add((short) 19);
+        container.add((short) 21);
+        container.add((short) 214);
 
         System.out.println(container.contain((short) 5));
         System.out.println(container.contain((short) 95));
         System.out.println(container.contain((short) 9));
+
+        System.out.println(container);
 
 
         int[] array = new int[4];

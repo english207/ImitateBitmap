@@ -108,7 +108,7 @@ public class Search
 
     private static short arrayShort(ByteBuffer buffer, int idx)
     {
-        int _idx = idx * 2;
+        int _idx = idx << 1;
         return buffer.getShort(_idx);
     }
 

@@ -40,7 +40,7 @@ public class Test2
             roaringContainer = roaringContainer.add(integer.shortValue());
         }
         System.out.println(roaringContainer.getSizeInBytes());
-        System.out.println((System.nanoTime() - start) / 1000 /1000  + " - ms");
+        System.out.println("roaring - " + (System.nanoTime() - start) / 1000 /1000  + " - ms");
 
 
         start = System.nanoTime();
@@ -51,23 +51,23 @@ public class Test2
             container = container.add(integer.shortValue());
         }
         System.out.println(container.getSizeInBytes());
-        System.out.println((System.nanoTime() - start) / 1000 /1000 + " - ms");
+        System.out.println("myarray - " + (System.nanoTime() - start) / 1000 /1000 + " - ms");
 
         start = System.nanoTime();
         boolean flag = true;
-
         for (Integer integer : sets)
         {
-            flag = flag && container.contain(integer.shortValue());
+            flag = flag && roaringContainer.contains(integer.shortValue());
         }
-        System.out.println((System.nanoTime() - start) / 1000  + " - ms");
+
 
         start = System.nanoTime();
         flag = true;
         for (Integer integer : sets)
         {
-            flag = flag && roaringContainer.contains(integer.shortValue());
+            flag = flag && container.contain(integer.shortValue());
         }
+        System.out.println((System.nanoTime() - start) / 1000  + " - ms");
         System.out.println((System.nanoTime() - start) / 1000  + " - ms");
 
     }
