@@ -1,7 +1,7 @@
 # ImitateBitmap 模仿者
 > ImitateBitmap是模仿RoaringBitmap结合自身场景定制的bitmap
 ## 1，可伸缩容器 DynScaleBitmapContainer
-因为ArrayContainer在4096个short的时候会直接转化成BitmapContainer，
+因为ArrayContainer在4096个short的时候会直接转化成1024个long的BitmapContainer，
 假设上ArrayContainer上的数据是相对连续的（当然RoaringBitmap还有一个行程压缩的RunBitmap，但是它查询性能不佳同时压缩率不稳定），在当它满足4096个转成Bitmap的时候，BitmapContainer是有一大部分的空间是浪费的，DynScaleBitmapContainer保证了一定的压缩率以及查询性能
 
 ## 2，堆外内存容器 DirectByteBufferContainer
