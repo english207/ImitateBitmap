@@ -1,5 +1,5 @@
 # ImitateBitmap 模仿者
-参照roaringbitmap的思想
+## roaringbitmap的思想
 因为ArrayContainer在4096个short的时候会直接转化成BitmapContainer，但这之间能不能有一个过渡呢？
 比如，假设上ArrayContainer上的数据是相对连续的（当然RoaringBitmap还有一个行程压缩的RunBitmap），在当它满足4096个转成Bitmap的时候，BitmapContainer是有一大部分的空间是浪费的
 所以介于ArrayContainer 和 BitmapContainer 之间，DynScaleBitmapContainer所要做的事情就是这一个过渡
